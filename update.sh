@@ -60,13 +60,21 @@ for version in "${versions[@]}"; do
 	minorVersion="${rcVersion#$majorVersion.}"
 	minorVersion="${minorVersion%%.*}"
 
+	if [[ $majorVersion == 5 && $minorVersion < 5 ]]; then
+		fileExtName="gz"
+	else
+		fileExtName="xz"
+	fi
+	fileName="php.tar.$fileExtName"
+
 	# scrape the relevant API based on whether we're looking for pre-releases
 	apiUrl="https://www.php.net/releases/index.php?json&max=100&version=${rcVersion%%.*}"
 	apiJqExpr='
 		(keys[] | select(startswith("'"$rcVersion"'."))) as $version
 		| [ $version, (
 			.[$version].source[]
-			| select(.filename | endswith(".xz"))
+			| map(select(.filename))
+			| select(.filename | endswith(".'"$fileExtName"'"))
 			|
 				"https://www.php.net/get/" + .filename + "/from/this/mirror",
 				"https://www.php.net/get/" + .filename + ".asc/from/this/mirror",
@@ -248,6 +256,7 @@ for version in "${versions[@]}"; do
 			-e 's!%%PHP_ASC_URL%%!'"$ascUrl"'!' \
 			-e 's!%%PHP_SHA256%%!'"$sha256"'!' \
 			-e 's!%%PHP_MD5%%!'"$md5"'!' \
+			-e 's!%%PHP_FILE_NAME%%!'"$fileName"'!' \
 			"${dockerfiles[@]}"
 	)
 
