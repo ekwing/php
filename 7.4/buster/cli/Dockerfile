@@ -67,6 +67,7 @@ ENV GPG_KEYS 42670A7FE4D0441C8E4632349E4FDC074A4EF02D 5A52880781F755608BF815FC91
 ENV PHP_VERSION 7.4.1
 ENV PHP_URL="https://www.php.net/get/php-7.4.1.tar.xz/from/this/mirror" PHP_ASC_URL="https://www.php.net/get/php-7.4.1.tar.xz.asc/from/this/mirror"
 ENV PHP_SHA256="561bb866bdd509094be00f4ece7c3543ec971c4d878645ee81437e291cffc762" PHP_MD5=""
+ENV PHP_FILE_NAME="php.tar.xz"
 
 RUN set -eux; \
 	\
@@ -78,22 +79,22 @@ RUN set -eux; \
 	mkdir -p /usr/src; \
 	cd /usr/src; \
 	\
-	curl -fsSL -o php.tar.xz "$PHP_URL"; \
+	curl -fsSL -o "$PHP_FILE_NAME" "$PHP_URL"; \
 	\
 	if [ -n "$PHP_SHA256" ]; then \
-		echo "$PHP_SHA256 *php.tar.xz" | sha256sum -c -; \
+		echo "$PHP_SHA256 *$PHP_FILE_NAME" | sha256sum -c -; \
 	fi; \
 	if [ -n "$PHP_MD5" ]; then \
-		echo "$PHP_MD5 *php.tar.xz" | md5sum -c -; \
+		echo "$PHP_MD5 *$PHP_FILE_NAME" | md5sum -c -; \
 	fi; \
 	\
 	if [ -n "$PHP_ASC_URL" ]; then \
-		curl -fsSL -o php.tar.xz.asc "$PHP_ASC_URL"; \
+		curl -fsSL -o "$PHP_FILE_NAME.asc" "$PHP_ASC_URL"; \
 		export GNUPGHOME="$(mktemp -d)"; \
 		for key in $GPG_KEYS; do \
 			gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
 		done; \
-		gpg --batch --verify php.tar.xz.asc php.tar.xz; \
+		gpg --batch --verify "$PHP_FILE_NAME.asc" "$PHP_FILE_NAME"; \
 		gpgconf --kill all; \
 		rm -rf "$GNUPGHOME"; \
 	fi; \

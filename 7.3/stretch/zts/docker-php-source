@@ -18,7 +18,11 @@ case "$1" in
 	extract)
 		mkdir -p "$dir"
 		if [ ! -f "$dir/.docker-extracted" ]; then
-			tar -Jxf /usr/src/php.tar.xz -C "$dir" --strip-components=1
+			if [ -f "php.tar.xz" ]; then
+				tar -Jxf /usr/src/php.tar.xz -C "$dir" --strip-components=1
+			elif [ -f "php.tar.gz" ]; then
+				tar -zxf /usr/src/php.tar.gz -C "$dir" --strip-components=1
+			fi
 			touch "$dir/.docker-extracted"
 		fi
 		;;

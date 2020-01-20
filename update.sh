@@ -73,7 +73,7 @@ for version in "${versions[@]}"; do
 		(keys[] | select(startswith("'"$rcVersion"'."))) as $version
 		| [ $version, (
 			.[$version].source[]
-			| map(select(.filename))
+      | select(.filename != null)
 			| select(.filename | endswith(".'"$fileExtName"'"))
 			|
 				"https://www.php.net/get/" + .filename + "/from/this/mirror",
