@@ -13,6 +13,9 @@ ENV PHPIZE_DEPS \
 		pkgconf \
 		re2c
 
+# add repositories
+RUN echo "https://mirrors.aliyun.com/alpine/v%%ALPINE_VERSION%%/main/" > /etc/apk/repositories
+
 # persistent / runtime deps
 RUN apk add --no-cache \
 		ca-certificates \
@@ -20,6 +23,7 @@ RUN apk add --no-cache \
 		tar \
 		xz \
 # https://github.com/docker-library/php/issues/494
+		libressl \
 		openssl
 
 # ensure www-data user exists
@@ -84,7 +88,7 @@ RUN set -eux; \
 			gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
 		done; \
 		gpg --batch --verify "$PHP_FILE_NAME.asc" "$PHP_FILE_NAME"; \
-		gpgconf --kill all; \
+		command -v gpgconf && gpgconf --kill all || :; \
 		rm -rf "$GNUPGHOME"; \
 	fi; \
 	\
@@ -99,6 +103,7 @@ RUN set -eux; \
 		coreutils \
 		curl-dev \
 		libedit-dev \
+		libressl-dev \
 		libsodium-dev \
 		libxml2-dev \
 		linux-headers \

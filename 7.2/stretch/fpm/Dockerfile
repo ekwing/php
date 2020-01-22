@@ -28,6 +28,14 @@ ENV PHPIZE_DEPS \
 		pkg-config \
 		re2c
 
+# add repositories
+RUN echo "deb http://mirrors.aliyun.com/debian stretch main contrib non-free" > /etc/apt/sources.list \
+  && echo "deb-src http://mirrors.aliyun.com/debian stretch main contrib non-free" >> /etc/apt/sources.list  \
+  && echo "deb http://mirrors.aliyun.com/debian stretch-updates main contrib non-free" >> /etc/apt/sources.list \
+  && echo "deb-src http://mirrors.aliyun.com/debian stretch-updates main contrib non-free" >> /etc/apt/sources.list \
+  && echo "deb http://mirrors.aliyun.com/debian-security stretch/updates main contrib non-free" >> /etc/apt/sources.list \
+  && echo "deb-src http://mirrors.aliyun.com/debian-security stretch/updates main contrib non-free" >> /etc/apt/sources.list
+
 # persistent / runtime deps
 RUN set -eux; \
 	apt-get update; \
@@ -66,7 +74,7 @@ ENV PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
 ENV GPG_KEYS 1729F83938DA44E27BA0F4D3DBDB397470D12172 B1B44D8F021E4E2D6021E995DC9FF8D3EE5AF27F
 
 ENV PHP_VERSION 7.2.26
-ENV PHP_URL="https://www.php.net/get/php-7.2.26.tar.xz/from/this/mirror" PHP_ASC_URL="https://www.php.net/get/php-7.2.26.tar.xz.asc/from/this/mirror"
+ENV PHP_URL="http://mirrors.sohu.com/php/php-7.2.26.tar.xz" PHP_ASC_URL="http://mirrors.sohu.com/php/php-7.2.26.tar.xz.asc"
 ENV PHP_SHA256="1dd3bc875e105f5c9d21fb4dc240670bd2c22037820ff03890f5ab883c88b78d" PHP_MD5=""
 ENV PHP_FILE_NAME="php.tar.xz"
 
@@ -96,7 +104,7 @@ RUN set -eux; \
 			gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
 		done; \
 		gpg --batch --verify "$PHP_FILE_NAME.asc" "$PHP_FILE_NAME"; \
-		gpgconf --kill all; \
+		command -v gpgconf && gpgconf --kill all || :; \
 		rm -rf "$GNUPGHOME"; \
 	fi; \
 	\

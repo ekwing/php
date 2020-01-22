@@ -22,6 +22,14 @@ ENV PHPIZE_DEPS \
 		pkg-config \
 		re2c
 
+# add repositories
+RUN echo "deb http://mirrors.aliyun.com/debian stretch main contrib non-free" > /etc/apt/sources.list \
+  && echo "deb-src http://mirrors.aliyun.com/debian stretch main contrib non-free" >> /etc/apt/sources.list  \
+  && echo "deb http://mirrors.aliyun.com/debian stretch-updates main contrib non-free" >> /etc/apt/sources.list \
+  && echo "deb-src http://mirrors.aliyun.com/debian stretch-updates main contrib non-free" >> /etc/apt/sources.list \
+  && echo "deb http://mirrors.aliyun.com/debian-security stretch/updates main contrib non-free" >> /etc/apt/sources.list \
+  && echo "deb-src http://mirrors.aliyun.com/debian-security stretch/updates main contrib non-free" >> /etc/apt/sources.list
+
 # persistent / runtime deps
 RUN set -eux; \
 	apt-get update; \
@@ -89,7 +97,7 @@ RUN set -eux; \
 			gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
 		done; \
 		gpg --batch --verify "$PHP_FILE_NAME.asc" "$PHP_FILE_NAME"; \
-		gpgconf --kill all; \
+		command -v gpgconf && gpgconf --kill all || :; \
 		rm -rf "$GNUPGHOME"; \
 	fi; \
 	\

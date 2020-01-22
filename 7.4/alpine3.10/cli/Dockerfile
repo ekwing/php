@@ -19,6 +19,9 @@ ENV PHPIZE_DEPS \
 		pkgconf \
 		re2c
 
+# add repositories
+RUN echo "https://mirrors.aliyun.com/alpine/v3.10/main/" > /etc/apk/repositories
+
 # persistent / runtime deps
 RUN apk add --no-cache \
 		ca-certificates \
@@ -63,7 +66,7 @@ ENV PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
 ENV GPG_KEYS 42670A7FE4D0441C8E4632349E4FDC074A4EF02D 5A52880781F755608BF815FC910DEB46F53EA312
 
 ENV PHP_VERSION 7.4.1
-ENV PHP_URL="https://www.php.net/get/php-7.4.1.tar.xz/from/this/mirror" PHP_ASC_URL="https://www.php.net/get/php-7.4.1.tar.xz.asc/from/this/mirror"
+ENV PHP_URL="http://mirrors.sohu.com/php/php-7.4.1.tar.xz" PHP_ASC_URL="http://mirrors.sohu.com/php/php-7.4.1.tar.xz.asc"
 ENV PHP_SHA256="561bb866bdd509094be00f4ece7c3543ec971c4d878645ee81437e291cffc762" PHP_MD5=""
 ENV PHP_FILE_NAME="php.tar.xz"
 
@@ -90,7 +93,7 @@ RUN set -eux; \
 			gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
 		done; \
 		gpg --batch --verify "$PHP_FILE_NAME.asc" "$PHP_FILE_NAME"; \
-		gpgconf --kill all; \
+		command -v gpgconf && gpgconf --kill all || :; \
 		rm -rf "$GNUPGHOME"; \
 	fi; \
 	\

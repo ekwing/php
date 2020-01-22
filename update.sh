@@ -18,14 +18,14 @@ declare -A gpgKeys=(
 	# https://www.php.net/downloads.php#gpg-7.2
 	# https://www.php.net/gpg-keys.php#gpg-7.2
 	[7.2]='1729F83938DA44E27BA0F4D3DBDB397470D12172 B1B44D8F021E4E2D6021E995DC9FF8D3EE5AF27F'
-
-
+	[7.1]='A917B1ECDA84AEC2B568FED6F50ABC807BD5DCD0 528995BFEDFBA7191D46839EF9BA0ADA31CBD89E 1729F83938DA44E27BA0F4D3DBDB397470D12172'
+	[7.0]='1A4E8B7277C42E53DBA9C7B9BCAA30EA9C0D5763'
 	# https://wiki.php.net/todo/php56
 	# jpauli & tyrael
 	# https://secure.php.net/downloads.php#gpg-5.6
 	# https://secure.php.net/gpg-keys.php#gpg-5.6
 	[5.6]='0BD78B5F97500D450838F95DFE857D9A90D90EC1 6E4F6AB321FDC07F2C332E3AC2BF0BC433CFC8B3'
-	[5.5]='0BD78B5F97500D450838F95DFE857D9A90D90EC1 0B96609E270F565C13292B24C13C70B87267B52D'
+	[5.5]='0BD78B5F97500D450838F95DFE857D9A90D90EC1 0B96609E270F565C13292B24C13C70B87267B52D F38252826ACD957EF380D39F2F7956BC5DA04B5D'
 	[5.4]='F38252826ACD957EF380D39F2F7956BC5DA04B5D'
 	[5.3]='0B96609E270F565C13292B24C13C70B87267B52D 0A95E9A026542D53835E3F3A7DEC4E69FC9C83D7'
 )
@@ -60,8 +60,8 @@ for version in "${versions[@]}"; do
 	minorVersion="${rcVersion#$majorVersion.}"
 	minorVersion="${minorVersion%%.*}"
 
-	if [[ $majorVersion == 5 && $minorVersion < 5 ]]; then
-		fileExtName="gz"
+	if [ "$majorVersion" = '5' -a "$minorVersion" -lt '5' ]; then
+		fileExtName="bz2"
 	else
 		fileExtName="xz"
 	fi
@@ -76,8 +76,8 @@ for version in "${versions[@]}"; do
       | select(.filename != null)
 			| select(.filename | endswith(".'"$fileExtName"'"))
 			|
-				"https://www.php.net/get/" + .filename + "/from/this/mirror",
-				"https://www.php.net/get/" + .filename + ".asc/from/this/mirror",
+				"http://mirrors.sohu.com/php/" + .filename + "",
+				"http://mirrors.sohu.com/php/" + .filename + ".asc",
 				.sha256 // "",
 				.md5 // ""
 		) ]
@@ -134,7 +134,7 @@ for version in "${versions[@]}"; do
 
 	dockerfiles=()
 
-	for suite in buster stretch alpine{3.11,3.10}; do
+	for suite in buster stretch alpine{3.11,3.10,3.8,3.6,3.4,3.3}; do
 		[ -d "$version/$suite" ] || continue
 		alpineVer="${suite#alpine}"
 
@@ -164,7 +164,7 @@ for version in "${versions[@]}"; do
 			if [ "$variant" = 'apache' ]; then
 				cp -a apache2-foreground "$version/$suite/$variant/"
 			fi
-			if [ "$majorVersion" = '7' -a "$minorVersion" -lt '2' ]; then
+			if [ "$majorVersion" -lt '7' ] || [ "$majorVersion" = '7' -a "$minorVersion" -lt '2' ]; then
 				# argon2 password hashing is only supported in 7.2+
 				sed -ri \
 					-e '/##<argon2-stretch>##/,/##<\/argon2-stretch>##/d' \
@@ -176,7 +176,7 @@ for version in "${versions[@]}"; do
 					-e '/##<argon2-stretch>##/,/##<\/argon2-stretch>##/d' \
 					"$version/$suite/$variant/Dockerfile"
 			fi
-			if [ "$majorVersion" = '7' -a "$minorVersion" -lt '4' ]; then
+			if [ "$majorVersion" -lt '7' ] || [ "$majorVersion" = '7' -a "$minorVersion" -lt '4' ]; then
 				# oniguruma is part of mbstring in php 7.4+
 				sed -ri \
 					-e '/oniguruma-dev|libonig-dev/d' \
@@ -188,24 +188,43 @@ for version in "${versions[@]}"; do
 					-e '/pear |pearrc|pecl.*channel/d' \
 					"$version/$suite/$variant/Dockerfile"
 			fi
-			if [ "$majorVersion" != '7' ] || [ "$minorVersion" -lt '4' ]; then
+			if [ "$majorVersion" -lt '7' ] || [ "$majorVersion" = '7' -a "$minorVersion" -lt '4' ]; then
 				# --with-pear is only relevant on PHP 7, and specifically only 7.4+ (see https://github.com/docker-library/php/issues/846#issuecomment-505638494)
 				sed -ri \
 					-e '/--with-pear/d' \
 					"$version/$suite/$variant/Dockerfile"
 			fi
-			if [ "$majorVersion" = '7' -a "$minorVersion" -lt '2' ]; then
+			if [ "$majorVersion" -lt '7' ] || [ "$majorVersion" = '7' -a "$minorVersion" -lt '2' ]; then
 				# sodium is part of php core 7.2+ https://wiki.php.net/rfc/libsodium
 				sed -ri '/sodium/d' "$version/$suite/$variant/Dockerfile"
 			fi
-			if [ "$variant" = 'fpm' -a "$majorVersion" = '7' -a "$minorVersion" -lt '3' ]; then
+			if [ "$majorVersion" = '5' -a "$suite" = 'stretch' ]; then
+				# php 5 still needs older ssl
+				sed -ri 's/libssl-dev/libssl1.0-dev/g' "$version/$suite/$variant/Dockerfile"
+			fi
+			if [ "$majorVersion" != '5' ] || [ "$minorVersion" != '6' ]; then
+				sed -ri \
+					-e '/libressl-dev|libressl/d' \
+					"$version/$suite/$variant/Dockerfile"
+			fi
+			if [ "$majorVersion" = '5' -a "$minorVersion" = '6' ]; then
+				sed -ri \
+					-e '/openssl-dev/d' \
+					"$version/$suite/$variant/Dockerfile"
+			fi
+			if [ "$majorVersion" -lt '7' ]; then
+				sed -ri \
+					-e '/--with-password-argon2|--with-sodium=shared/d' \
+					"$version/$suite/$variant/Dockerfile"
+			fi
+			if [ "$variant" = 'fpm' ] && { [ "$majorVersion" -lt '7' ] || [ "$majorVersion" = '7' -a "$minorVersion" -lt '3' ]; }; then
 				# php-fpm "decorate_workers_output" is only available in 7.3+
 				sed -ri \
 					-e '/decorate_workers_output/d' \
 					-e '/log_limit/d' \
 					"$version/$suite/$variant/Dockerfile"
 			fi
-			if [ "$suite" = 'stretch' ] || { [ "$majorVersion" = '7' ] && [ "$minorVersion" -ge '4' ]; }; then
+			if [ "$suite" = 'stretch' ] || { [ "$majorVersion" -lt '7' ] || [ "$majorVersion" = '7' ] && [ "$minorVersion" -ge '4' ]; }; then
 				# https://github.com/docker-library/php/issues/865
 				# https://bugs.php.net/bug.php?id=76324
 				# https://github.com/php/php-src/pull/3632
@@ -214,7 +233,7 @@ for version in "${versions[@]}"; do
 					-e '/freetype-config/d' \
 					"$version/$suite/$variant/Dockerfile"
 			fi
-			if [[ "$suite" == alpine* ]] && [ "$majorVersion" = '7' ] && [ "$minorVersion" -lt '4' ]; then
+			if [[ "$suite" == alpine* ]] && { [ "$majorVersion" -lt '7' ] || [ "$majorVersion" = '7' -a "$minorVersion" -lt '4' ]; }; then
 				# https://github.com/docker-library/php/issues/888
 				sed -ri \
 					-e '/linux-headers/d' \
